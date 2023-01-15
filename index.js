@@ -1,17 +1,48 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 
 const app = express();
+app.use(cookieParser());
 
-app.set("view engine", "ejs");
+const adminRouter = express.Router();
 
-app.get("/test", (req, res) => {
-  res.send("Test page");
+const loggerWrapper = (options) => {
+  return function (req, res, next) {
+    if (options.log) {
+      console.log(
+        `${new Date(Date.now()).toLocaleString()} - ${req.method} - ${
+          req.originalUrl
+        } - ${req.protocol} - ${req.ip}`
+      );
+      next();
+    } else {
+      throw new Error("Failed to log");
+    }
+  };
+};
+
+adminRouter.use(
+  loggerWrapper({
+    log: false,
+  })
+);
+
+adminRouter.get("/dashboard", (req, res) => {
+  res.send("Dashboard");
 });
+
+app.use("/admin", adminRouter);
 
 app.get("/about", (req, res) => {
-  res.redirect("/test");
-  res.end();
+  res.send("About");
 });
+
+const errorMiddleware = (err, req, res, next) => {
+  console.log(err.message);
+  res.status(500).send("There was a server side error!");
+};
+
+adminRouter.use(errorMiddleware);
 
 app.listen(4000, () => {
   console.log("Listening on port 4000");
